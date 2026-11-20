@@ -54,13 +54,6 @@ svg{width:100%;height:100%;overflow:visible}
 #status{font-size:12px;letter-spacing:.35em;color:var(--c);min-height:16px}
 #sub{max-width:520px;text-align:center;font-size:15px;line-height:1.45;min-height:66px;color:var(--tx);margin:0;overflow-y:auto;max-height:22vh}
 #hint{font-size:11px;color:var(--mu);margin:0}
-#ideaPanel{display:none;width:min(100%,520px);min-height:112px;max-height:25vh;overflow:auto;border:1px solid rgba(46,230,255,.38);border-radius:16px;background:linear-gradient(135deg,rgba(9,30,58,.88),rgba(4,14,30,.72));box-shadow:0 0 22px rgba(46,230,255,.12),inset 0 0 22px rgba(46,230,255,.06);padding:10px 12px;gap:12px;align-items:center;animation:holoIn .35s ease-out}
-#ideaPanel.show{display:flex}
-#ideaPanel svg{width:104px;height:86px;flex:none;filter:drop-shadow(0 0 6px rgba(46,230,255,.7))}
-.ideaCopy{min-width:0;text-align:left}.ideaTag{font-size:9px;letter-spacing:.2em;color:var(--c);margin-bottom:4px}
-#ideaTitle{font-size:13px;font-weight:700;color:#e8fbff;margin:0 0 4px}#ideaDescription{font-size:11px;line-height:1.35;color:#a9d7e8;margin:0}
-[data-e="p"] #face{transform:translateX(-5px) rotate(-4deg)}[data-e="p"] .eye{transform:translateX(-7px) rotate(-8deg)}[data-e="p"] .mouth{transform:scaleX(.65) translateY(-2px)}
-@keyframes holoIn{from{opacity:0;transform:translateY(8px) scale(.98)}to{opacity:1;transform:translateY(0) scale(1)}}
 footer{padding:8px 14px 14px;display:flex;flex-direction:column;gap:10px;max-width:640px;width:100%;margin:0 auto}
 .chips{display:flex;gap:8px;overflow-x:auto;scrollbar-width:none}
 .chip{flex:none;background:var(--pn);border:1px solid var(--ln);color:var(--tx);border-radius:999px;padding:8px 14px;font-size:13px;cursor:pointer}
@@ -104,24 +97,19 @@ footer{padding:8px 14px 14px;display:flex;flex-direction:column;gap:10px;max-wid
 </g>
 </svg></div>
 <div id="status">EM ESPERA</div>
-<p id="sub">IA conversacional em preparação. Toque no microfone ou digite sua mensagem, senhor.</p>
+<p id="sub">Modo independente. Fish Audio conectado pelo servidor quando configurado; digite ou fale um comando.</p>
 <p id="hint">Toque no núcleo para ver o rosto</p>
-<section id="ideaPanel" aria-live="polite">
-<svg viewBox="0 0 120 96" role="img" aria-label="Diagrama holográfico"><g fill="none" stroke="#2ee6ff" stroke-width="1.4"><path d="M60 12 L26 40 L60 76 L94 40 Z" opacity=".55"/><path d="M26 40 H94 M60 12 V76" stroke-dasharray="3 4"/><circle cx="60" cy="12" r="7" fill="#0b4160"/><circle cx="26" cy="40" r="6" fill="#0b4160"/><circle cx="94" cy="40" r="6" fill="#0b4160"/><circle cx="60" cy="76" r="7" fill="#0b4160"/><circle cx="60" cy="44" r="12" fill="#0b4160"/></g><g fill="#d8faff" font-size="6" text-anchor="middle"><text x="60" y="14">IDEIA</text><text x="60" y="46">J.A.R.</text><text x="26" y="42">A</text><text x="94" y="42">B</text><text x="60" y="78">C</text></g></svg>
-<div class="ideaCopy"><div class="ideaTag">PROJEÇÃO HOLOGRÁFICA</div><p id="ideaTitle">Nova ideia</p><p id="ideaDescription">Analisando possibilidades...</p></div></section>
 </main>
 <footer>
 <div class="chips"><button class="chip">Conta uma piada</button><button class="chip">Me dá ideias de projeto</button><button class="chip">Escreve uma mensagem pra minha mãe</button><button class="chip">Me motiva</button></div>
-<div class="bar"><input id="inp" placeholder="Fale comigo, senhor..." autocomplete="off" enterkeyhint="send">
+<div class="bar"><input id="inp" placeholder="Digite um comando" autocomplete="off" enterkeyhint="send">
 <button class="ib" id="mic" aria-label="Falar"><svg viewBox="0 0 24 24"><rect x="9" y="3" width="6" height="12" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3"/></svg></button>
 <button class="ib" id="snd" aria-label="Enviar"><svg viewBox="0 0 24 24"><path d="M4 12l16-8-6 16-2-6z"/></svg></button></div>
 </footer>
 <script>
 const $=s=>document.querySelector(s);
 const st=$('#stage'),sub=$('#sub'),sts=$('#status'),inp=$('#inp'),mic=$('#mic');
-let hist=[],busy=false,vox=true,pin=false,hold=null,listening=false,rec=null,buf='';
-const FISH_VOICE_ID='a5b93aeddcc948c19ea04f0afe9d178c';
-const FISH_VOICE_PAGE='https://fish.audio/m/a5b93aeddcc948c19ea04f0afe9d178c';
+let hist=[],busy=false,vox=true,pin=false,hold=null,listening=false,rec=null,buf='',currentAudio=null;
 const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
 const L={idle:'EM ESPERA',listen:'OUVINDO',think:'PROCESSANDO',talk:'FALANDO'};
 function face(){st.dataset.face=(pin||st.dataset.s==='talk'||st.dataset.s==='think'||hold)?'1':'0'}
@@ -130,8 +118,8 @@ function setE(e){st.dataset.e=e}
 // Este modo não depende de Claude nem de uma API externa.
 if(!SR)mic.title='Reconhecimento de voz não suportado neste navegador; use o campo de texto.';
 st.onclick=()=>{pin=!pin;face()};
-$('#vox').onclick=e=>{vox=!vox;e.target.textContent='VOZ: '+(vox?'ON':'OFF');if(!vox && 'speechSynthesis' in window)speechSynthesis.cancel()};
-$('#go').onclick=()=>{$('#ov').classList.add('h');say('[feliz] Olá, senhor. Sistemas online. Em que posso ajudar?')};
+$('#vox').onclick=e=>{vox=!vox;e.target.textContent='VOZ: '+(vox?'ON':'OFF');if(!vox){if(window.speechSynthesis)window.speechSynthesis.cancel();if(currentAudio){currentAudio.pause();currentAudio=null;end();}}};
+$('#go').onclick=()=>{$('#ov').classList.add('h');say('[feliz] Olá, chefe. Sistemas online. Em que posso ajudar?')};
 
 // Atualiza a lista de vozes quando o Android/navegador termina de carregá-las.
 if('speechSynthesis' in window){
@@ -140,50 +128,83 @@ if('speechSynthesis' in window){
 }
 
 function end(){const e=st.dataset.e;setS('idle');if(e==='r'||e==='f'){hold=setTimeout(()=>{hold=null;setE('n');face()},1600)}else setE('n');busy=false}
-function say(raw){
- const m=raw.match(/^\s*\[(\w+)\]\s*/);const k=m?m[1].toLowerCase():'neutro';
- const t=raw.replace(/^\s*\[\w+\]\s*/,'').trim()||'Certo, senhor.';
- setE(({rindo:'r',feliz:'f',surpreso:'s',pensativo:'p'}[k]||'n'));sub.textContent=t;clearTimeout(hold);hold=null;setS('talk');
- if(vox){fetch('/api/tts',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({text:t,reference_id:FISH_VOICE_ID})})
- .then(async response=>{if(!response.ok)throw new Error('TTS indisponível');const audioUrl=URL.createObjectURL(await response.blob());const audio=new Audio(audioUrl);audio.onended=()=>{URL.revokeObjectURL(audioUrl);end();};audio.onerror=()=>{URL.revokeObjectURL(audioUrl);browserSpeak(t);};await audio.play();})
- .catch(()=>browserSpeak(t));}else end();
+async function say(raw){
+  const m=raw.match(/^\s*\[(\w+)\]\s*/);
+  const k=m?m[1].toLowerCase():'neutro';
+  const t=raw.replace(/^\s*\[\w+\]\s*/,'').trim()||'Certo.';
+  setE({rindo:'r',feliz:'f',surpreso:'s'}[k]||'n');
+  sub.textContent=t;
+  clearTimeout(hold);hold=null;setS('talk');
+
+  if(!vox){setTimeout(end,1200);return;}
+
+  // Primeiro tenta a voz escolhida do Fish Audio através do servidor seguro.
+  try{
+    if(currentAudio){currentAudio.pause();currentAudio=null;}
+    sts.textContent='GERANDO VOZ';
+    const response=await fetch('/api/tts',{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({text:t})
+    });
+    if(!response.ok){
+      const detail=await response.text();
+      throw new Error(detail||('HTTP '+response.status));
+    }
+    const audioBlob=await response.blob();
+    const audioUrl=URL.createObjectURL(audioBlob);
+    currentAudio=new Audio(audioUrl);
+    currentAudio.onended=()=>{URL.revokeObjectURL(audioUrl);currentAudio=null;end();};
+    currentAudio.onerror=()=>{URL.revokeObjectURL(audioUrl);currentAudio=null;fallbackSpeech(t);};
+    await currentAudio.play();
+    return;
+  }catch(err){
+    console.warn('Fish Audio indisponível; usando voz do navegador:',err);
+    fallbackSpeech(t);
+  }
 }
-function browserSpeak(t){
-  if('speechSynthesis' in window && 'SpeechSynthesisUtterance' in window){
+
+function fallbackSpeech(t){
+  if(vox && 'speechSynthesis' in window && 'SpeechSynthesisUtterance' in window){
     try{
       window.speechSynthesis.cancel();
       const u=new SpeechSynthesisUtterance(t);
       u.lang='pt-BR';u.rate=1.0;u.pitch=1.0;u.volume=1.0;
       const voices=window.speechSynthesis.getVoices();
       const v=voices.find(v=>v.lang && v.lang.toLowerCase()==='pt-br')
-        || voices.find(v=>v.lang && v.lang.toLowerCase().startsWith('pt'));
+        ||voices.find(v=>v.lang && v.lang.toLowerCase().startsWith('pt'));
       if(v)u.voice=v;
       u.onstart=()=>{sts.textContent='FALANDO';};
       u.onend=()=>end();
-      u.onerror=()=>{sub.textContent=t+' (Não consegui iniciar o áudio do navegador.)';end();};
+      u.onerror=()=>{end();};
       window.speechSynthesis.speak(u);
       if(window.speechSynthesis.paused)window.speechSynthesis.resume();
-    }catch(err){sub.textContent=t+' (Áudio indisponível neste navegador.)';end();}
-  }else{sub.textContent=t+' (Este navegador não oferece síntese de voz.)';setTimeout(end,1800);}
+    }catch(err){end();}
+  }else{end();}
 }
-function showIdea(data){
- const panel=$('#ideaPanel');
- if(!data||!data.showIdea){panel.classList.remove('show');return;}
- $('#ideaTitle').textContent=(data.ideaTitle||'Ideia em análise').slice(0,90);
- $('#ideaDescription').textContent=(data.ideaDescription||'Uma proposta para explorar.').slice(0,260);
- panel.classList.add('show');
-}
-async function send(t){
- t=(t||'').trim();if(!t||busy)return;busy=true;inp.value='';setE('p');setS('think');sub.textContent='Analisando sua mensagem, senhor...';
- try{
-  const response=await fetch('/api/chat',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({message:t,history:hist.slice(-12)})});
-  const data=await response.json();if(!response.ok)throw new Error(data.error||'Não consegui acessar a inteligência artificial.');
-  const reply=(data.reply||'Certo, senhor.').trim();hist.push({role:'user',content:t},{role:'assistant',content:reply});if(hist.length>16)hist=hist.slice(-16);
-  showIdea(data);say('['+(data.expression||'neutro')+'] '+reply);
- }catch(error){
-  showIdea(null);const msg=error.message==='IA ainda não configurada no servidor.'?'Minha inteligência artificial ainda precisa ser configurada no servidor, senhor.':'Não consegui acessar minha inteligência artificial agora, senhor. Verifique a conexão e tente novamente.';
-  say('[neutro] '+msg);
+function localReply(text){
+ const q=text.toLowerCase().trim();
+ if(/\b(oi|olá|ola|bom dia|boa tarde|boa noite)\b/.test(q)) return '[feliz] Olá, chefe. Estou funcionando em modo independente. Como posso ajudar?';
+ if(q.includes('que horas')||q==='hora') return '[neutro] Agora são '+new Date().toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'})+'.';
+ if(q.includes('que dia')||q.includes('data de hoje')||q==='data') return '[neutro] Hoje é '+new Date().toLocaleDateString('pt-BR',{weekday:'long',day:'2-digit',month:'long',year:'numeric'})+'.';
+ if(q.includes('seu nome')||q.includes('quem é você')) return '[feliz] Sou o JARVIS, seu assistente pessoal em modo independente.';
+ if(q.includes('piada')) return '[rindo] Por que o computador foi ao médico? Porque estava com um vírus!';
+ if(q.includes('motiv')) return '[feliz] Grandes projetos começam com pequenos passos, chefe. Continue construindo e melhorando um dia de cada vez.';
+ if(q.includes('ajuda')||q.includes('comandos')) return '[neutro] Posso dizer as horas, informar a data, contar uma piada, dar uma mensagem motivacional e conversar com comandos simples. Para respostas inteligentes sobre qualquer assunto, será necessária uma conexão com um serviço de inteligência artificial.';
+ if(q.includes('limpar conversa')||q.includes('limpar histórico')) {hist=[];return '[feliz] Histórico desta sessão limpo, chefe.';}
+ if(q.startsWith('calcule ')||q.startsWith('quanto é ')){
+  const expr=q.replace(/^calcule\s+|^quanto é\s+/,'').replace(/,/g,'.');
+  if(/^[0-9+\-*/().\s%]+$/.test(expr)){
+   try {const tokens=expr.match(/(?:\d+(?:\.\d+)?|[()+\-*/%])/g)||[]; if(tokens.join('')===expr.replace(/\s/g,'')){const result=Function('"use strict";return ('+expr+')')();if(Number.isFinite(result))return '[feliz] O resultado é '+result+'.';}}catch(e){}
+  }
+  return '[neutro] Não consegui interpretar essa conta. Tente escrever uma operação simples, como calcule 12 vezes 3.';
  }
+ return '[pensativo] Entendi, chefe. Estou no modo independente e ainda não tenho inteligência artificial geral conectada. Posso executar meus comandos locais; para responder livremente sobre qualquer assunto, precisaremos configurar um servidor de IA.';
+}
+function send(t){
+ t=(t||'').trim();if(!t||busy)return;busy=true;inp.value='';hist.push('Usuário: '+t);setE('n');setS('think');sub.textContent='';
+ const out=localReply(t);hist.push('JARVIS: '+out.replace(/^\s*\[\w+\]\s*/,''));
+ say(out);
 }
 $('#snd').onclick=()=>send(inp.value);
 inp.addEventListener('keydown',e=>{if(e.key==='Enter')send(inp.value)});
