@@ -25,6 +25,39 @@ Quando a resposta trouxer ideia concreta, sugestão de projeto, plano, invençã
 A resposta deve soar natural em voz alta. Não inclua palavrões nem conteúdo adulto.`;
 const server = http.createServer(async(req,res)=>{
  if(req.method==="GET"&&req.url==="/health")return send(res,200,JSON.stringify({ok:true,app:"JARVIS",aiConfigured:!!GEMINI_API_KEY,fishConfigured:!!FISH_API_KEY}),"application/json");
+ if(req.method==="POST"&&req.url==="/api/draw"){
+  if(!GEMINI_API_KEY)return send(res,503,JSON.stringify({error:"IA não configurada."}),"application/json");
+  try{
+    const data=JSON.parse(await readBody(req,10000));
+    const prompt=String(data.prompt||"").trim().slice(0,700);
+    if(!prompt)return send(res,400,JSON.stringify({error:"Descreva o desenho."}),"application/json");
+
+    const upstream=await fetch("https://generativelanguage.googleapis.com/v1beta/models/"+encodeURIComponent(GEMINI_MODEL)+":generateContent",{
+      method:"POST",
+      headers:{"x-goog-api-key":GEMINI_API_KEY,"Content-Type":"application/json"},
+      body:JSON.stringify({
+        contents:[{role:"user",parts:[{text:"Crie um desenho original em SVG puro, viewBox 0 0 600 420, com fundo branco e formas vetoriais detalhadas. Pedido: "+prompt+". Retorne somente o SVG. Não use scripts, links ou imagens externas."}]}],
+        generationConfig:{temperature:0.5,maxOutputTokens:1800}
+      })
+    });
+
+    const raw=await upstream.text();
+    if(!upstream.ok)return send(res,502,JSON.stringify({error:"Falha ao criar desenho."}),"application/json");
+
+    const payload=JSON.parse(raw);
+    let svg=payload.candidates?.[0]?.content?.parts?.map(p=>p.text||"").join("").trim()||"";
+    svg=svg.replace(/^```(?:svg|xml)?\s*/i,"").replace(/\s*```$/,"").trim();
+
+    if(!/^<svg\b[\s\S]*<\/svg>$/i.test(svg)||svg.length>25000||/<\s*(script|foreignObject|iframe|object|embed)\b/i.test(svg)||/\son\w+\s*=|href\s*=|url\s*\(/i.test(svg)){
+      return send(res,502,JSON.stringify({error:"Desenho não passou na verificação."}),"application/json");
+    }
+
+    return send(res,200,JSON.stringify({svg}),"application/json");
+  }catch(error){
+    console.error("Draw error:",error.message);
+    return send(res,500,JSON.stringify({error:"Erro ao criar desenho."}),"application/json");
+  }
+ }
  if(req.method==="POST"&&req.url==="/api/chat"){
   if(!GEMINI_API_KEY)return send(res,503,JSON.stringify({error:"IA ainda não configurada no servidor."}),"application/json");
   try{
