@@ -1,22 +1,22 @@
-# J.A.R.V.I.S. + Fish Audio
+J.A.R.V.I.S. — ATUALIZAÇÃO COM IA E HOLOGRAMA
 
-O visual e os comandos locais do arquivo original foram preservados. A fala agora tenta usar a voz do Fish Audio e, se a API não estiver configurada, volta para a voz do navegador.
+Arquivos: index.html, server.js, package.json e este guia.
 
-## Voz configurada
-- Fish Audio voice ID: `a5b93aeddcc948c19ea04f0afe9d178c`
-- Modelo: `s2.1-pro-free`
-- Endpoint: `https://api.fish.audio/v1/tts`
+O que foi adicionado:
+- IA conversacional Gemini no servidor.
+- Tratamento por “senhor”, sem palavrões e sem conteúdo adulto explícito.
+- Expressão pensativa com o rosto virado para o lado.
+- Painel holográfico para resumir ideias e sugestões.
+- Integração de voz Fish Audio (Jarvis UCM) mantida no servidor.
 
-## Importante
-O HTML sozinho não consegue proteger uma chave de API. Por isso, o projeto inclui `server.js`, que guarda a chave no ambiente do servidor e faz a chamada ao Fish Audio. Não cole a chave no HTML nem compartilhe a chave em conversas.
+CONFIGURAÇÃO NECESSÁRIA NO RENDER
+Em Render > seu Web Service > Environment, adicione:
+GEMINI_API_KEY = sua chave da API Gemini
+FISH_API_KEY = sua chave Fish Audio (opcional; sem ela usa a voz do navegador)
 
-## Como iniciar em um computador com Node.js 18+
-1. Abra um terminal nesta pasta.
-2. Configure a variável de ambiente `FISH_API_KEY` com a chave criada na sua conta Fish Audio.
-3. Execute `npm start`.
-4. Abra `http://localhost:3000`.
+Nunca coloque essas chaves no HTML ou no GitHub e nunca envie as chaves neste chat.
+O serviço usa Node 18+ e inicia com npm start. Depois de atualizar o GitHub, aguarde o Render terminar o deploy.
 
-No Android, abrir `index.html` diretamente como arquivo não ativa a integração: o servidor precisa estar rodando em algum computador ou hospedagem. A voz via Fish Audio também pode consumir créditos conforme os limites da conta; confira os termos e custos com um responsável antes de habilitar uso pago.
+Teste: abra SEU-LINK/health. O JSON mostra aiConfigured e fishConfigured como true ou false.
 
-## O que ainda não está conectado
-Este projeto continua usando os comandos locais do HTML original. Uma IA conversacional real e hospedagem 24 horas são etapas separadas.
+Nota: o plano gratuito do Render pode suspender o serviço quando fica sem uso. A IA e a voz dependem das respectivas chaves e dos limites dos provedores.
