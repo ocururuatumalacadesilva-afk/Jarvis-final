@@ -1,0 +1,22 @@
+# J.A.R.V.I.S. + Fish Audio
+
+O visual e os comandos locais do arquivo original foram preservados. A fala agora tenta usar a voz do Fish Audio e, se a API não estiver configurada, volta para a voz do navegador.
+
+## Voz configurada
+- Fish Audio voice ID: `a5b93aeddcc948c19ea04f0afe9d178c`
+- Modelo: `s2.1-pro-free`
+- Endpoint: `https://api.fish.audio/v1/tts`
+
+## Importante
+O HTML sozinho não consegue proteger uma chave de API. Por isso, o projeto inclui `server.js`, que guarda a chave no ambiente do servidor e faz a chamada ao Fish Audio. Não cole a chave no HTML nem compartilhe a chave em conversas.
+
+## Como iniciar em um computador com Node.js 18+
+1. Abra um terminal nesta pasta.
+2. Configure a variável de ambiente `FISH_API_KEY` com a chave criada na sua conta Fish Audio.
+3. Execute `npm start`.
+4. Abra `http://localhost:3000`.
+
+No Android, abrir `index.html` diretamente como arquivo não ativa a integração: o servidor precisa estar rodando em algum computador ou hospedagem. A voz via Fish Audio também pode consumir créditos conforme os limites da conta; confira os termos e custos com um responsável antes de habilitar uso pago.
+
+## O que ainda não está conectado
+Este projeto continua usando os comandos locais do HTML original. Uma IA conversacional real e hospedagem 24 horas são etapas separadas.
